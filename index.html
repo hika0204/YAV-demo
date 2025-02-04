@@ -1,0 +1,1589 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube ArchiveChat Visualizer (デモ版)</title>
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <!-- Chart.js の読み込み -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- YouTube IFrame API の読み込み -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <!-- Turbolinks の読み込み（必要な場合） -->
+  <script src="https://cdn.jsdelivr.net/npm/turbolinks/dist/turbolinks.js"></script>
+  <script>
+    Turbolinks.start();
+  </script>
+  <style>
+    /* CSS変数の定義 */
+    :root {
+      --font-family: 'LINESeedJP', sans-serif;
+      --color-white: #FFFFFF;
+      --color-light: rgba(255, 255, 255, 0.1);
+      --color-light-opaque: rgba(255, 255, 255, 0.18);
+      --color-dark-overlay: rgba(0, 0, 0, 0.0);
+      --background-gradient: linear-gradient(135deg, var(--color-light), rgba(255, 255, 255, 0));
+      --box-shadow-main: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      --border-radius-lg: 20px;
+      --border-radius-md: 15px;
+      --border-radius-sm: 10px;
+      --button-glow: linear-gradient(45deg,
+          #FF0000, #FF7300, #FFFB00, #48FF00,
+          #00FFD5, #002BFF, #FF00C8, #FF0000);
+    }
+
+    /* フォント定義 */
+    @font-face {
+      font-family: 'LINESeedJP';
+      src: url('font/LINESeedJP_OTF_Th.otf') format('opentype');
+      font-weight: 300;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'LINESeedJP';
+      src: url('font/LINESeedJP_OTF_Rg.otf') format('opentype');
+      font-weight: 400;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'LINESeedJP';
+      src: url('font/LINESeedJP_OTF_Bd.otf') format('opentype');
+      font-weight: 700;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'LINESeedJP';
+      src: url('font/LINESeedJP_OTF_Eb.otf') format('opentype');
+      font-weight: 800;
+      font-style: normal;
+    }
+
+    /* 基本スタイル */
+    body {
+      font-family: var(--font-family);
+      font-weight: 400;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      background-image: url('demo/images/background01.jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      display: flex;
+      min-height: 100vh;
+      /* 画面高さが足りない場合は拡張 */
+      overflow-y: auto;
+      /* 縦スクロールを可能に */
+      position: relative;
+      background-color: #1a1a1a;
+    }
+
+    /* オーバーレイ */
+    body::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--color-dark-overlay);
+      z-index: 1;
+    }
+
+    /* オーバーレイの下にコンテンツを表示 */
+    .main-content,
+    .sidebar {
+      position: relative;
+      z-index: 2;
+    }
+
+    /* フォントウェイトクラス */
+    .font-thin {
+      font-weight: 300;
+    }
+
+    .font-regular {
+      font-weight: 400;
+    }
+
+    .font-bold {
+      font-weight: 700;
+    }
+
+    .font-extrabold {
+      font-weight: 800;
+    }
+
+    /* サイドバーのスタイル */
+    .sidebar {
+      background: var(--background-gradient);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--color-light-opaque);
+      box-shadow: var(--box-shadow-main);
+      width: 170px;
+      color: var(--color-white);
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      flex-shrink: 0;
+    }
+
+    .sidebar a i {
+      font-size: 18px;
+      width: 24px;
+      text-align: center;
+    }
+
+    .sidebar h2 {
+      margin: 6px 0 24px 3px;
+      font-size: 24px;
+    }
+
+    .sidebar a {
+      color: var(--color-white);
+      text-decoration: none;
+      padding: 10px 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-radius: 10px;
+      transition: background-color 0.3s;
+      margin-bottom: 10px;
+    }
+
+    .sidebar a:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .sidebar a.active {
+      background-color: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    /* メインコンテンツのスタイル */
+    .main-content {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      width: calc(100% - 200px);
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+    }
+
+    .fade-in {
+      opacity: 1;
+      transition: opacity 0.5s ease-in;
+    }
+
+    .fade-out {
+      opacity: 0;
+      transition: opacity 0.5s ease-out;
+    }
+
+    /* 検索フォーム */
+    #urlForm {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 15px 0 25px;
+      gap: 30px;
+      width: 100%;
+    }
+
+    #youtubeUrl {
+      width: 50%;
+      padding: 8px;
+      font-size: 16px;
+      background: var(--background-gradient);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      background-color: transparent;
+      border: 1px solid var(--color-light-opaque);
+      border-radius: 30px;
+      box-shadow: var(--box-shadow-main);
+      color: var(--color-white);
+    }
+
+    #youtubeUrl::placeholder {
+      color: var(--color-white);
+      opacity: 1;
+    }
+
+    #youtubeUrl:focus {
+      outline: none;
+    }
+
+    /* アクションボタン */
+    #actionButton {
+      width: 150px;
+      height: 40px;
+      padding: 6px 32px;
+      font-size: 16px;
+      color: var(--color-white);
+      cursor: pointer;
+      position: relative;
+      z-index: 0;
+      border-radius: 30px;
+      background: var(--background-gradient);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--color-light-opaque);
+      transition: background 0.3s ease, color 0.3s ease;
+      box-shadow: var(--box-shadow-main);
+      font-family: var(--font-family);
+    }
+
+    #actionButton::after {
+      content: "";
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(51, 51, 51, 0.3);
+      left: 0;
+      top: 0;
+      border-radius: 30px;
+      z-index: -1;
+    }
+
+    #actionButton::before {
+      content: "";
+      background: var(--button-glow);
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      width: calc(100% + 4px);
+      height: calc(100% + 4px);
+      border-radius: 30px;
+      filter: blur(8px);
+      background-size: 600%;
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+      z-index: -1;
+      animation: glowing 20s linear infinite;
+    }
+
+    #actionButton:hover {
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+
+    #actionButton:hover::before {
+      opacity: 1;
+    }
+
+    #actionButton:active::after {
+      background: transparent;
+    }
+
+    #actionButton:active {
+      color: #000;
+      font-weight: bold;
+    }
+
+    #actionButton.loading {
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+
+    #actionButton.loading::before {
+      opacity: 1;
+    }
+
+    /* スピナー */
+    .buttonSpinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.6);
+      border-top-color: var(--color-white);
+      border-radius: 50%;
+      animation: spin 1s ease-in-out infinite;
+      margin-left: 4px;
+      display: none;
+      position: relative;
+      top: 4px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    #content {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+      align-items: flex-start;
+      overflow: hidden;
+      margin-bottom: 0;
+      line-height: 1;
+    }
+
+    #videoContainer {
+      width: 45%;
+      max-width: 920px;
+      height: auto;
+      aspect-ratio: 16 / 9;
+      background: var(--background-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-white);
+      font-size: 18px;
+      border-radius: var(--border-radius-lg);
+      box-shadow: var(--box-shadow-main);
+      flex-shrink: 0;
+      flex-direction: column;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--color-light-opaque);
+    }
+
+    #placeholderText {
+      font-weight: 400;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: none;
+      border-radius: var(--border-radius-lg);
+    }
+
+    /* コメントスクロールコンテナ */
+    #top3List {
+      width: calc(50% - 10px);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin: 0;
+      padding: 0;
+      position: relative;
+      transition: width 0.3s ease, max-width 0.3s ease;
+    }
+
+    .scroll-box {
+      width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+      background: var(--background-gradient);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 16px;
+      border: 1px solid var(--color-light-opaque);
+      box-shadow: var(--box-shadow-main);
+      padding: 0;
+      display: flex;
+      align-items: center;
+    }
+
+    .scroll-content {
+      display: inline-block;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+
+    @keyframes scroll-left {
+      0% {
+        transform: translateX(0);
+      }
+
+      100% {
+        transform: translateX(-50%);
+      }
+    }
+
+    #scrollBoxTop1 {
+      height: 60px;
+    }
+
+    #scrollBoxTop2 {
+      height: 43px;
+    }
+
+    #scrollBoxTop3 {
+      height: 28px;
+    }
+
+    #scrollContentTop1 {
+      font-size: 24px;
+    }
+
+    #scrollContentTop2 {
+      font-size: 18px;
+    }
+
+    #scrollContentTop3 {
+      font-size: 14px;
+    }
+
+    .scroll-content span {
+      display: inline-block;
+      margin-right: 30px;
+      color: var(--color-white);
+      font-weight: 400;
+    }
+
+    /* 制御コンテナ */
+    #controlContainer {
+      margin-top: 8px;
+      display: flex; /* 横並びにする */
+      align-items: center;
+      gap: 15px; /* 各要素の間隔を調整 */
+      justify-content: flex-start; /* 左寄せに配置 */
+      width: 100%;
+      flex-wrap: nowrap; /* 折り返しを防ぐ */
+    }
+
+    /* controlContainer 内の直下要素を横幅いっぱいに */
+    #controlContainer>div {
+      flex-grow: 1;
+      width: 100%;
+    }
+
+    /* スライダーを横いっぱいにする */
+    #speedRange {
+      width: 100%; /* 横幅を100%に設定 */
+      max-width: 100%; /* 最大幅を100%に固定 */
+      height: 6px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: linear-gradient(to right, #FFFFFF 100%, rgba(255, 255, 255, 0.2) 100%);
+      border-radius: 5px;
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
+      transition: background-size 0.3s ease;
+      box-shadow: 0px 0px 8px 4px rgba(255, 255, 255, 0.1), 0px 0px 12px 8px rgba(255, 255, 255, 0.1);
+    }
+  
+    #divisionRange {
+      width: 100px;
+      height: 6px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: linear-gradient(to right, #FFFFFF 100%, rgba(255, 255, 255, 0.2) 100%);
+      border-radius: 5px;
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
+      transition: background-size 0.3s ease;
+      box-shadow: 0px 0px 8px 4px rgba(255, 255, 255, 0.1), 0px 0px 12px 8px rgba(255, 255, 255, 0.1);
+    }
+
+    #speedRange::-webkit-slider-thumb,
+    #divisionRange::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 0;
+      height: 0;
+      background: transparent;
+      cursor: default;
+      border: none;
+      pointer-events: none;
+    }
+
+    /* 倍速コントロール */
+    #speedControl {
+      gap: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-grow: 1; /* 横幅の均等な割り当て */
+      text-align: center;
+      width: 100%;
+    }
+
+    #speedValue,
+    #divisionValue,
+    #aggregationContainer label {
+      font-weight: 400;
+      font-size: 14px;
+      color: var(--color-white);
+    }
+
+    /* 動画コントロール */
+    #videoControls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between; /* コンテンツを等間隔に配置 */
+      gap: 8px; /* 各要素の間隔を20pxに設定 */
+      padding: 10px;
+      border-radius: 16px;
+      width: fit-content;
+      height: 46px;
+      background: var(--background-gradient);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--color-light-opaque);
+      box-shadow: var(--box-shadow-main);
+    }
+
+    #videoControls label {
+      font-size: 12px;
+      color: #333;
+      margin-right: 10px;
+    }
+
+    /* セクション数スライダー */
+    #aggregationContainer {
+      gap: 8px; /* 各要素の間隔を20pxに設定 */
+      width: 100%;
+      height: 46px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--background-gradient);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--color-light-opaque);
+      box-shadow: var(--box-shadow-main);
+      border-radius: 16px;
+      padding: 10px;
+    }
+
+    #aggregationContainer label {
+      font-size: 14px;
+      text-align: center;
+    }
+
+    #divisionRange {
+      width: 81%;
+      -webkit-appearance: none;
+      appearance: none;
+      background: linear-gradient(to right, var(--color-white) 100%, rgba(255, 255, 255, 0.2) 100%);
+      height: 6px;
+      border-radius: 5px;
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
+      transition: background-size 0.3s ease;
+      box-shadow: 0 0 8px 4px rgba(255, 255, 255, 0.1),
+        0 0 12px 8px rgba(255, 255, 255, 0.1);
+    }
+
+    /* グラフ種類選択コンテナ */
+    #chartTypeContainer {
+      width: 100%;
+      height: 67px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--background-gradient);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--color-light-opaque);
+      box-shadow: var(--box-shadow-main);
+      border-radius: 16px;
+    }
+
+    #chartTypeContainer div {
+      display: flex;
+      gap: 3px;
+    }
+
+    .chartTypeButton {
+      width: 40px;
+      height: 40px;
+      background: none;
+      border: none;
+      color: var(--color-white);
+      cursor: pointer;
+      transition: background-color 0.3s, box-shadow 0.3s;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 18px;
+      margin: 0;
+    }
+
+    .chartTypeButton:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .chartTypeButton.active {
+      background: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+    }
+
+    .chartTypeButton:active {
+      transform: none !important;
+      box-shadow: none !important;
+      outline: none !important;
+    }
+
+    /* スキップボタン */
+    .skipButton {
+      background-color: transparent;
+      color: var(--color-white);
+      border: none;
+      border-radius: 5px;
+      padding: 10px;
+      cursor: pointer;
+      font-size: 15px;
+      transition: background-color 0.3s ease;
+    }
+
+    .skipButton:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* チャートコンテナ */
+    #chartContainer {
+      margin: 0px 22px;
+      width: 100%;
+      max-height: 600px;
+      height: calc(100vh - 500px);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      background: var(--background-gradient);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: var(--border-radius-lg);
+      border: 1px solid var(--color-light-opaque);
+      box-shadow: var(--box-shadow-main);
+      padding: 20px;
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
+      border-radius: 16px;
+    }
+
+    /* 結果メッセージ */
+    #resultMessage {
+      text-align: center;
+      font-size: 16px;
+      color: red;
+      margin-top: 20px;
+    }
+
+    /* メッセージコンテナ */
+    #messageContainer {
+      text-align: center;
+      margin-bottom: 0;
+      display: none;
+    }
+
+    #successMessage {
+      font-size: 14px;
+      color: #3EDA9B;
+    }
+
+    .fade-out {
+      opacity: 0;
+      transition: opacity 0.5s ease-out;
+    }
+
+    .fade-in {
+      opacity: 1;
+      transition: opacity 0.5s ease-in;
+    }
+
+    /* レスポンシブデザイン */
+    @media (min-width: 3840px) {
+      #videoContainer {
+        width: 70%;
+        max-width: none;
+      }
+
+      #top3List {
+        width: 30%;
+        max-width: none;
+      }
+    }
+
+    @media (min-width: 1920px) and (max-width: 3839px) {
+      #videoContainer {
+        width: 65%;
+      }
+
+      #top3List {
+        width: 35%;
+      }
+    }
+
+    @media (max-width: 1200px) {
+      .sidebar {
+        display: none;
+      }
+
+      .main-content {
+        width: 100%;
+      }
+
+      #content {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      #videoContainer,
+      #top3List {
+        width: 100%;
+        max-width: none;
+      }
+
+      #controlContainer {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+      }
+
+      #speedControl {
+        width: 100%;
+      }
+
+      #videoControls {
+        justify-content: center;
+        width: 100%;
+      }
+
+      #aggregationContainer,
+      #chartTypeContainer {
+        width: 100%;
+        text-align: center;
+      }
+
+      .chartTypeButton {
+        width: 40px;
+        height: 40px;
+      }
+
+      #chartContainer {
+        height: auto;
+        max-height: 600px;
+      }
+
+      #chartContainer canvas {
+        height: 300px !important;
+      }
+    }
+
+    @media (max-width: 768px) {
+      #youtubeUrl {
+        width: 70%;
+      }
+
+      #controlContainer {
+        gap: 15px;
+      }
+
+      #speedRange {
+        width: 100%;
+      }
+
+      #aggregationContainer label,
+      #chartTypeContainer label {
+        margin-bottom: 5px;
+        font-size: 14px;
+      }
+
+      .skipButton {
+        padding: 8px 8px;
+        font-size: 14px;
+      }
+
+      .chartTypeButton {
+        width: 35px;
+        height: 35px;
+      }
+
+      #scrollContentTop1 {
+        font-size: 20px;
+      }
+
+      #scrollContentTop2 {
+        font-size: 18px;
+      }
+
+      #scrollContentTop3 {
+        font-size: 14px;
+      }
+
+      .scroll-content span {
+        margin-right: 20px;
+      }
+
+      #speedValue {
+        font-size: 12px;
+      }
+
+      #aggregationContainer label,
+      #chartTypeContainer label {
+        font-size: 12px;
+      }
+
+      #chartContainer canvas {
+        height: 250px !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      #youtubeUrl {
+        width: 90%;
+      }
+
+      #controlContainer {
+        gap: 10px;
+      }
+
+      .skipButton {
+        padding: 6px 6px;
+        font-size: 12px;
+      }
+
+      .chartTypeButton {
+        width: 30px;
+        height: 30px;
+      }
+
+      #scrollContentTop1 {
+        font-size: 18px;
+      }
+
+      #scrollContentTop2 {
+        font-size: 16px;
+      }
+
+      #scrollContentTop3 {
+        font-size: 12px;
+      }
+
+      .scroll-content span {
+        margin-right: 15px;
+      }
+
+      #speedValue {
+        font-size: 10px;
+      }
+
+      #aggregationContainer label,
+      #chartTypeContainer label {
+        font-size: 10px;
+      }
+
+      #chartContainer canvas {
+        height: 200px !important;
+      }
+    }
+
+    @keyframes glowing {
+      0% {
+        background-position: 0 0;
+      }
+
+      50% {
+        background-position: 400% 0;
+      }
+
+      100% {
+        background-position: 0 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- サイドバー -->
+  <div class="sidebar">
+    <h2 class="font-extrabold" style="text-align: left;">
+      YouTube<br>
+      ArchiveChat<br>
+      Visualizer
+    </h2>
+    <!-- Turbolinks無効化リンク -->
+    <a href="home.html" class="active" data-turbolinks="false"><i class="fas fa-home"></i> ホーム</a>
+    <a href="help.html" data-turbolinks="false"><i class="fas fa-question-circle"></i> 対応URL</a>
+    <a href="setting.html" data-turbolinks="false"><i class="fas fa-cog"></i> 設定</a>
+  </div>
+  <!-- メインコンテンツ -->
+  <div class="main-content">
+    <!-- 検索フォーム -->
+    <form id="urlForm">
+      <input type="text" id="youtubeUrl" placeholder="   YouTubeのURLを入力してください" />
+      <button type="button" onclick="loadDemoData()" id="actionButton" aria-busy="false">
+        <span id="buttonText">解析</span>
+        <span class="buttonSpinner"></span>
+      </button>
+    </form>
+    <!-- コンテンツエリア: 動画とコメント -->
+    <div id="content">
+      <!-- YouTube動画表示 -->
+      <div id="videoContainer">
+        <span id="placeholderText">ここにYouTubeの動画が表示されます</span>
+        <iframe id="youtubePlayer" src="https://www.youtube.com/embed/?enablejsapi=1" allowfullscreen></iframe>
+      </div>
+      <!-- コメント量TOP3のスクロールボックス -->
+      <div id="top3List">
+        <div class="scroll-box" id="scrollBoxTop1">
+          <div class="scroll-content" id="scrollContentTop1">コメント数TOP1がここに流れます</div>
+        </div>
+        <div class="scroll-box" id="scrollBoxTop2">
+          <div class="scroll-content" id="scrollContentTop2">コメント数TOP2がここに流れます</div>
+        </div>
+        <div class="scroll-box" id="scrollBoxTop3">
+          <div class="scroll-content" id="scrollContentTop3">コメント数TOP3がここに流れます</div>
+        </div>
+        <!-- 制御コンテナ -->
+        <div id="controlContainer">
+          <!-- 動画コントロール -->
+          <div id="videoControls">
+            <button type="button" class="skipButton" onclick="skipTime(-10)" aria-label="10秒戻す" title="10秒戻す">◀</button>
+            <div id="speedControl">
+              <span id="speedValue">1.0倍速</span>
+              <input type="range" id="speedRange" min="0.5" max="2" value="1" step="0.1"
+                oninput="changePlaybackSpeed(this.value)" />
+            </div>
+            <button type="button" class="skipButton" onclick="skipTime(10)" aria-label="10秒進める"
+              title="10秒進める">▶</button>
+          </div>
+          <!-- セクション数スライダー -->
+          <div id="aggregationContainer">
+            <label for="divisionRange">セクション数 <span id="divisionValue">10</span></label>
+            <input type="range" id="divisionRange" min="10" max="100" step="10" value="50"
+              oninput="applyDivision(this.value)" />
+          </div>
+          <!-- グラフ種類選択 -->
+          <div id="chartTypeContainer">
+            <div style="display: flex; gap: 10px;">
+              <button type="button" class="chartTypeButton active" id="barChartButton" onclick="changeChartType('bar')">
+                <i class="fas fa-chart-bar"></i>
+              </button>
+              <button type="button" class="chartTypeButton" id="lineChartButton" onclick="changeChartType('line')">
+                <i class="fas fa-chart-line"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- チャートコンテナ -->
+      <div id="chartContainer">
+        <div id="messageContainer">
+          <span id="successMessage">以下にグラフが表示されます</span>
+        </div>
+        <canvas id="commentChart"></canvas>
+      </div>
+      <!-- 結果メッセージ -->
+      <div id="resultMessage"></div>
+    </div>
+  </div>
+  <!-- JavaScript -->
+  <script>
+    // 事前に登録する対象のURLリスト（URLそのままをキーにしてJSONファイルを指定）
+    const validUrls = {
+      "https://www.youtube.com/watch?v=1Qe2dv1bBhI": "data/url01.json",
+      "https://www.youtube.com/live/LRD_j5dbrYE?si=p-aMFVHKmuoNbr28": "data/url02.json",
+      "https://www.youtube.com/live/Qvi6gyYzqvo?si=WDNLJQ4kysseu35u": "data/url03.json",
+      "https://www.youtube.com/live/a8B30Bb5xNw?si=Vi9znvxNWTgQreyP": "data/url04.json",
+      "https://www.youtube.com/watch?v=HCUvM5710jY": "data/url05.json"
+    };
+
+    // 事前に登録する各動画の再生時間（"hh:mm:ss" 形式）
+    const videoDurations = {
+      "https://www.youtube.com/watch?v=1Qe2dv1bBhI": "00:56:55",
+      "https://www.youtube.com/live/LRD_j5dbrYE?si=p-aMFVHKmuoNbr28": "00:20:55",
+      "https://www.youtube.com/live/Qvi6gyYzqvo?si=WDNLJQ4kysseu35u": "02:19:40",
+      "https://www.youtube.com/live/a8B30Bb5xNw?si=Vi9znvxNWTgQreyP": "02:37:10",
+      "https://www.youtube.com/watch?v=HCUvM5710jY": "03:20:10"
+    };
+
+    // グローバル変数
+    let chartInstance = null;
+    let player;
+    let commentData = [];
+    let pendingDivisionCount = null;
+    let chartType = 'bar';
+
+    // YouTube IFrame API の初期化
+    function initializeYouTubePlayer() {
+      if (player) { player.destroy(); }
+      player = new YT.Player('youtubePlayer', {
+        events: { 'onReady': onPlayerReady }
+      });
+    }
+    window.onYouTubeIframeAPIReady = initializeYouTubePlayer;
+    function onPlayerReady(event) {
+      const checkDuration = () => {
+        let duration = player.getDuration();
+        if (duration <= 0) {
+          console.warn("動画の長さが取得できませんでした。事前定義された再生時間を使用します。");
+        }
+        if (duration > 0 && pendingDivisionCount !== null) {
+          drawChartFromJSON(commentData, pendingDivisionCount, chartType, currentYoutubeUrl);
+          pendingDivisionCount = null;
+        }
+      };
+      checkDuration();
+    }
+
+    // Turbolinks load イベント
+    document.addEventListener('turbolinks:load', function () {
+      console.log("Turbolinks load event triggered.");
+      drawEmptyChart();
+      initializeScrollBoxes();
+      const divisionSlider = document.getElementById('divisionRange');
+      if (divisionSlider) {
+        divisionSlider.addEventListener('input', function () {
+          const percentage = (divisionSlider.value - divisionSlider.min) / (divisionSlider.max - divisionSlider.min) * 100;
+          divisionSlider.style.backgroundSize = `${percentage}% 100%`;
+        });
+        divisionSlider.dispatchEvent(new Event('input'));
+      }
+      const speedSlider = document.getElementById('speedRange');
+      if (speedSlider) {
+        speedSlider.addEventListener('input', function () {
+          const percentage = (speedSlider.value - speedSlider.min) / (speedSlider.max - speedSlider.min) * 100;
+          speedSlider.style.backgroundSize = `${percentage}% 100%`;
+        });
+        speedSlider.dispatchEvent(new Event('input'));
+      }
+      const savedBackground = localStorage.getItem('backgroundImage');
+      if (savedBackground) {
+        document.body.style.backgroundImage = `url('${savedBackground}')`;
+      } else {
+        document.body.style.backgroundColor = '#1a1a1a';
+      }
+      if (window.YT && YT.Player) {
+        initializeYouTubePlayer();
+      } else {
+        window.onYouTubeIframeAPIReady = initializeYouTubePlayer;
+      }
+      const mainContent = document.querySelector('.main-content');
+      if (mainContent) {
+        requestAnimationFrame(() => { mainContent.classList.add('fade-in'); });
+      }
+      document.querySelectorAll('.sidebar a').forEach(link => {
+        link.addEventListener('click', function (event) {
+          event.preventDefault();
+          const url = this.href;
+          if (mainContent) {
+            mainContent.classList.remove('fade-in');
+            mainContent.classList.add('fade-out');
+          }
+          setTimeout(() => { window.location.href = url; }, 500);
+        });
+      });
+    });
+
+    // 初期スクロールボックスの設定
+    function initializeScrollBoxes() {
+      const defaultTexts = ['コメント数TOP1がここに流れます', 'コメント数TOP2がここに流れます', 'コメント数TOP3がここに流れます'];
+      const scrollSpeeds = [100, 75, 50];
+      defaultTexts.forEach((text, index) => {
+        const scrollContent = document.getElementById(`scrollContentTop${index + 1}`);
+        if (!scrollContent) return;
+        const comments = `<span>${text}</span>`;
+        let duplicatedComments = comments + comments;
+        scrollContent.innerHTML = duplicatedComments;
+        const scrollBox = scrollContent.parentElement;
+        const boxWidth = scrollBox.clientWidth;
+        let contentWidth = scrollContent.scrollWidth;
+        while ((contentWidth / 2) < boxWidth) {
+          duplicatedComments += comments;
+          scrollContent.innerHTML = duplicatedComments;
+          contentWidth = scrollContent.scrollWidth;
+        }
+        contentWidth = scrollContent.scrollWidth;
+        const duration = (contentWidth / 2) / scrollSpeeds[index];
+        scrollContent.style.animation = `scroll-left ${duration}s linear infinite`;
+      });
+    }
+
+    // 空のチャート描画
+    function drawEmptyChart() {
+      const ctx = document.getElementById('commentChart').getContext('2d');
+      if (chartInstance) { chartInstance.destroy(); }
+      let backgroundGradient = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height);
+      backgroundGradient.addColorStop(0, 'rgba(75, 192, 192, 1)');
+      backgroundGradient.addColorStop(1, 'rgba(75, 192, 192, 0.2)');
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [''],
+          datasets: [{
+            label: '',
+            data: [0],
+            backgroundColor: backgroundGradient,
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: 'rgba(75, 192, 192, 1)',
+          }]
+        },
+        options: {
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: {
+              type: 'category',
+              title: { display: true, text: '時間', color: '#FFFFFF' },
+              ticks: {
+                color: '#FFFFFF',
+                maxRotation: 45,
+                minRotation: 0,
+                autoSkip: true,
+                maxTicksLimit: 20,
+                callback: function (value) { return typeof value === 'string' ? value : Math.floor(value); }
+              },
+              grid: { display: false }
+            },
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'コメント数', color: '#FFFFFF' },
+              ticks: { color: '#FFFFFF' },
+              grid: { color: '#FFFFFF' }
+            }
+          },
+          // ★ クリック位置に関わらずシークできるよう onClick を修正 ★
+          onClick: function (evt, elements) {
+            const chart = this;
+            let label;
+            if (elements.length > 0) {
+              const index = elements[0].index;
+              label = chart.data.labels[index];
+            } else {
+              const xScale = chart.scales.x;
+              const clickX = evt.offsetX;
+              const index = Math.floor((clickX - xScale.left) / (xScale.width / chart.data.labels.length));
+              label = chart.data.labels[Math.max(0, Math.min(chart.data.labels.length - 1, index))];
+            }
+            if (label) {
+              const timeInSeconds = convertTimeToSeconds(label);
+              if (player && typeof player.seekTo === 'function') {
+                player.seekTo(timeInSeconds, true);
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // "hh:mm:ss" または "mm:ss" を秒に変換する関数
+    function convertTimeToSeconds(time) {
+      if (!time) {
+        console.error("convertTimeToSeconds エラー: timeString が無効", time);
+        return 0;
+      }
+      const parts = time.trim().split(':');
+      let seconds = 0;
+      if (parts.length === 3) {
+        const hours = parseInt(parts[0], 10) || 0;
+        const minutes = parseInt(parts[1], 10) || 0;
+        const secs = parseInt(parts[2], 10) || 0;
+        seconds = hours * 3600 + minutes * 60 + secs;
+      } else if (parts.length === 2) {
+        const minutes = parseInt(parts[0], 10) || 0;
+        const secs = parseInt(parts[1], 10) || 0;
+        seconds = minutes * 60 + secs;
+      } else {
+        console.error("convertTimeToSeconds エラー: timeString の形式が不正", time);
+        return 0;
+      }
+      return seconds;
+    }
+
+    // デモ用データを読み込み、解析する関数
+    let currentYoutubeUrl = "";
+    function loadDemoData() {
+      currentYoutubeUrl = document.getElementById('youtubeUrl').value.trim();
+      if (!currentYoutubeUrl) {
+        alert("YouTubeのURLを入力してください");
+        return;
+      }
+      if (validUrls.hasOwnProperty(currentYoutubeUrl)) {
+        const sampleDataUrl = validUrls[currentYoutubeUrl];
+
+        setLoadingState(true);
+        document.getElementById('successMessage').innerText = '';
+        document.getElementById('messageContainer').style.display = 'none';
+        document.getElementById('resultMessage').innerText = '';
+
+        fetch(sampleDataUrl)
+          .then(response => response.text())
+          .then(text => {
+            console.log("取得したデータ:", text);
+            const jsonArray = text.trim().split("\n").map(line => {
+              try {
+                const jsonObj = JSON.parse(line);
+                if (jsonObj.replayChatItemAction && jsonObj.replayChatItemAction.actions) {
+                  const action = jsonObj.replayChatItemAction.actions[0];
+                  if (action.addChatItemAction && action.addChatItemAction.item) {
+                    // liveChatTextMessageRenderer のみを対象とする
+                    const chatItem = action.addChatItemAction.item.liveChatTextMessageRenderer;
+                    if (chatItem && chatItem.timestampText && chatItem.timestampText.simpleText) {
+                      return {
+                        Message: chatItem.message.runs.map(run => run.text).join(" "),
+                        Author: chatItem.authorName.simpleText,
+                        Time: chatItem.timestampText.simpleText
+                      };
+                    }
+                  }
+                }
+              } catch (error) {
+                console.error("JSONパースエラー:", line, error);
+              }
+              return null;
+            }).filter(item => item !== null);
+
+            console.log("変換後のJSON:", jsonArray);
+            return jsonArray;
+          })
+          .then(data => {
+            console.log("JSONパース成功:", data);
+            if (!data || data.length === 0) {
+              throw new Error("コメントがありません");
+            }
+            document.getElementById('successMessage').innerText = '解析に成功しました';
+            document.getElementById('messageContainer').style.display = 'block';
+
+            displayVideo(currentYoutubeUrl);
+
+            const divisionCount = parseInt(document.getElementById('divisionRange').value);
+            pendingDivisionCount = divisionCount;
+            commentData = data;
+            drawChartFromJSON(commentData, divisionCount, chartType, currentYoutubeUrl);
+            displayTop3(commentData);
+
+            setLoadingState(false);
+          })
+          .catch(error => {
+            console.error("エラー:", error);
+            document.getElementById('resultMessage').innerText = error.message;
+            setLoadingState(false);
+          });
+      } else {
+        alert("対象のURLを入力してください");
+      }
+    }
+
+    function displayVideo(youtubeUrl) {
+      const videoContainer = document.getElementById('videoContainer');
+      const placeholder = document.getElementById('placeholderText');
+      const iframe = document.getElementById('youtubePlayer');
+      const videoId = extractVideoId(youtubeUrl);
+      if (videoId) {
+        iframe.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
+        iframe.style.display = 'block';
+        placeholder.style.display = 'none';
+      } else {
+        alert("正しいYouTubeのURLを入力してください");
+      }
+    }
+
+    // YouTubeのURLから動画IDを抽出する関数
+    function extractVideoId(url) {
+      const regExp = /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|.*&v=|live\/))([a-zA-Z0-9_-]{11})/;
+      const match = url.match(regExp);
+      return match ? match[1] : null;
+    }
+
+    function setLoadingState(isLoading) {
+      const actionButton = document.getElementById('actionButton');
+      const buttonText = document.getElementById('buttonText');
+      const buttonSpinner = document.querySelector('.buttonSpinner');
+      if (isLoading) {
+        buttonText.innerText = '解析中';
+        buttonSpinner.style.display = 'inline-block';
+        actionButton.disabled = true;
+        actionButton.style.cursor = 'not-allowed';
+        actionButton.style.opacity = '0.7';
+        actionButton.setAttribute('aria-busy', 'true');
+        actionButton.classList.add('loading');
+      } else {
+        buttonText.innerText = '解析';
+        buttonSpinner.style.display = 'none';
+        actionButton.disabled = false;
+        actionButton.style.cursor = 'pointer';
+        actionButton.style.opacity = '1';
+        actionButton.setAttribute('aria-busy', 'false');
+        actionButton.classList.remove('loading');
+      }
+    }
+
+    function changePlaybackSpeed(speed) {
+      const speedValue = document.getElementById('speedValue');
+      speedValue.innerText = `${parseFloat(speed).toFixed(1)}倍速`;
+      if (player && typeof player.setPlaybackRate === 'function') {
+        player.setPlaybackRate(parseFloat(speed));
+      }
+    }
+
+    function skipTime(seconds) {
+      if (player && typeof player.getCurrentTime === 'function' && typeof player.seekTo === 'function') {
+        let currentTime = player.getCurrentTime();
+        let newTime = currentTime + seconds;
+        if (newTime < 0) newTime = 0;
+        player.seekTo(newTime, true);
+      }
+    }
+
+    function calculateQuantile(data, q) {
+      const sorted = data.slice().sort((a, b) => a - b);
+      const pos = (sorted.length - 1) * q;
+      const base = Math.floor(pos);
+      const rest = pos - base;
+      if (sorted[base + 1] !== undefined) {
+        return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+      } else {
+        return sorted[base];
+      }
+    }
+
+    function applyDivision(value) {
+      const divisionValue = document.getElementById('divisionValue');
+      divisionValue.textContent = value;
+      if (player && typeof player.getDuration === 'function' && player.getDuration() > 0) {
+        drawChartFromJSON(commentData, parseInt(value), chartType, currentYoutubeUrl);
+      }
+    }
+
+    function changeChartType(selectedType) {
+      if (chartType === selectedType) return;
+      chartType = selectedType;
+      const buttons = document.querySelectorAll('.chartTypeButton');
+      buttons.forEach(button => button.classList.remove('active'));
+      if (selectedType === 'bar') {
+        document.getElementById('barChartButton').classList.add('active');
+      } else if (selectedType === 'line') {
+        document.getElementById('lineChartButton').classList.add('active');
+      }
+      const currentDivisionCount = parseInt(document.getElementById('divisionRange').value);
+      if (player && typeof player.getDuration === 'function' && player.getDuration() > 0) {
+        drawChartFromJSON(commentData, currentDivisionCount, chartType, currentYoutubeUrl);
+      }
+    }
+
+    // drawChartFromJSON の引数に youtubeUrl を追加し、動画の再生時間を事前定義の値から取得する
+    function drawChartFromJSON(comments, divisionCount, type = 'bar', youtubeUrl) {
+      if (chartInstance) { chartInstance.destroy(); }
+
+      let videoDuration = player.getDuration();
+      if (videoDuration <= 0 && videoDurations.hasOwnProperty(youtubeUrl)) {
+        videoDuration = convertTimeToSeconds(videoDurations[youtubeUrl]);
+      }
+      if (videoDuration <= 0) {
+        setLoadingState(false);
+        return;
+      }
+
+      const interval = videoDuration / divisionCount;
+      const commentCounts = {};
+      const commentsPerTime = {};
+
+      // セクションごとにコメント数をカウント
+      comments.forEach(comment => {
+        const timeStr = comment.Time;
+        const timeInSeconds = convertTimeToSeconds(timeStr);
+        const segment = Math.floor(timeInSeconds / interval) * interval;
+        const segmentTime = convert_seconds_to_time(segment);
+        if (commentCounts[segmentTime]) {
+          commentCounts[segmentTime] += 1;
+        } else {
+          commentCounts[segmentTime] = 1;
+        }
+        if (!commentsPerTime[segmentTime]) {
+          commentsPerTime[segmentTime] = [];
+        }
+        commentsPerTime[segmentTime].push(comment.Message);
+      });
+
+      const sortedTimes = Object.keys(commentCounts).sort((a, b) => {
+        const timeA = convertTimeToSeconds(a);
+        const timeB = convertTimeToSeconds(b);
+        return timeA - timeB;
+      });
+      const sortedCounts = sortedTimes.map(time => commentCounts[time]);
+      console.log("sortedTimes:", sortedTimes);
+      const thirdQuartile = calculateQuantile(sortedCounts, 0.75);
+      const top3 = sortedCounts.map((count, index) => ({ count, index }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3)
+        .map(item => item.index);
+
+      const ctx = document.getElementById('commentChart').getContext('2d');
+      let backgroundColors;
+      let borderColors;
+      let pointBackgroundColors;
+      if (type === 'line') {
+        let gradient = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height);
+        gradient.addColorStop(0, 'rgba(75, 192, 192, 1)');
+        gradient.addColorStop(1, 'rgba(75, 192, 192, 0.2)');
+        backgroundColors = gradient;
+        borderColors = 'rgba(75, 192, 192, 1)';
+        pointBackgroundColors = sortedCounts.map((count, index) => {
+          if (top3.includes(index)) {
+            return 'rgba(182, 89, 255, 1)';
+          } else if (count >= thirdQuartile) {
+            return 'rgba(255, 99, 132, 1)';
+          } else {
+            return 'rgba(75, 192, 192, 1)';
+          }
+        });
+      } else {
+        backgroundColors = sortedCounts.map((count, index) => {
+          if (top3.includes(index)) {
+            return 'rgba(182, 89, 255, 0.5)';
+          } else if (count >= thirdQuartile) {
+            return 'rgba(255, 99, 132, 0.5)';
+          } else {
+            return 'rgba(75, 192, 192, 0.5)';
+          }
+        });
+        borderColors = sortedCounts.map((count, index) => {
+          if (top3.includes(index)) {
+            return 'rgba(182, 89, 255, 1)';
+          } else if (count >= thirdQuartile) {
+            return 'rgba(255, 99, 132, 1)';
+          } else {
+            return 'rgba(75, 192, 192, 1)';
+          }
+        });
+      }
+
+      chartInstance = new Chart(ctx, {
+        type: type,
+        data: {
+          labels: sortedTimes,
+          datasets: [{
+            label: '',
+            data: sortedCounts,
+            backgroundColor: backgroundColors,
+            borderColor: borderColors,
+            borderWidth: 2,
+            fill: type === 'line',
+            tension: type === 'line' ? 0.4 : 0,
+            pointBackgroundColor: type === 'line' ? pointBackgroundColors : [],
+          }]
+        },
+        options: {
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              type: 'category',
+              title: { display: true, text: '時間', color: '#FFFFFF' },
+              ticks: { color: '#FFFFFF', maxRotation: 45, minRotation: 0, autoSkip: true, maxTicksLimit: 20 },
+              grid: { display: false }
+            },
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'コメント数', color: '#FFFFFF' },
+              ticks: { color: '#FFFFFF' },
+              grid: { color: '#FFFFFF' }
+            }
+          },
+          plugins: { legend: { labels: { color: '#FFFFFF' } } },
+          // ★ ここも、背景クリックでシークするよう onClick を修正 ★
+          onClick: function (evt, elements) {
+            const chart = this;
+            let label;
+            if (elements.length > 0) {
+              // データ要素がクリックされた場合はそのインデックスを利用
+              const index = elements[0].index;
+              label = chart.data.labels[index];
+            } else {
+              // クリックされた場所がデータ要素でなく、背景などの場合
+              // canvas の位置情報を取得して相対クリック位置を算出
+              const rect = chart.canvas.getBoundingClientRect();
+              const clickX = evt.clientX - rect.left;
+              const xScale = chart.scales.x;
+              const totalLabels = chart.data.labels.length;
+              const index = Math.floor((clickX / xScale.width) * totalLabels);
+              label = chart.data.labels[Math.max(0, Math.min(totalLabels - 1, index))];
+            }
+            if (label) {
+              const timeInSeconds = convertTimeToSeconds(label);
+              if (player && typeof player.seekTo === 'function') {
+                player.seekTo(timeInSeconds, true);
+              }
+            }
+          }
+        }
+      });
+      displayTop3(comments, sortedTimes, divisionCount, interval);
+    }
+
+    function displayTop3(comments, sortedTimes, divisionCount, interval) {
+      const commentCounts = {};
+      comments.forEach(comment => {
+        const timeInSeconds = convertTimeToSeconds(comment.Time);
+        const segment = Math.floor(timeInSeconds / interval) * interval;
+        const commentSegmentTime = convert_seconds_to_time(segment);
+        if (commentCounts[commentSegmentTime]) {
+          commentCounts[commentSegmentTime] += 1;
+        } else {
+          commentCounts[commentSegmentTime] = 1;
+        }
+      });
+      const top3 = Object.entries(commentCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(item => item[0]);
+      top3.forEach((segmentTime, index) => {
+        const scrollContent = document.getElementById(`scrollContentTop${index + 1}`);
+        if (!scrollContent) return;
+        const relevantComments = comments.filter(comment => {
+          const timeInSeconds = convertTimeToSeconds(comment.Time);
+          const segment = Math.floor(timeInSeconds / interval) * interval;
+          const commentSegmentTime = convert_seconds_to_time(segment);
+          return commentSegmentTime === segmentTime;
+        }).map(comment => comment.Message);
+        // 修正：除外ワードを含むメッセージを除外する（! を追加）
+        const excludedWords = [":", "_", "[", "]"];
+        const filteredComments = relevantComments.filter(message =>
+          message && !excludedWords.some(word => message.includes(word))
+        );
+        // もしフィルタ後のコメントが空の場合は、全件表示
+        const commentsToDisplay = filteredComments.length > 0 ? filteredComments : relevantComments;
+        const commentsHTML = commentsToDisplay.map(msg => `<span>${msg}</span>`).join(' ');
+        // 空文字列の場合は、ループを回さずにデフォルトテキストを設定
+        if (!commentsHTML.trim()) {
+          scrollContent.innerHTML = "<span>No comments</span>";
+          return;
+        }
+        let duplicatedComments = commentsHTML + ' ' + commentsHTML;
+        scrollContent.innerHTML = duplicatedComments;
+        const scrollBox = scrollContent.parentElement;
+        const boxWidth = scrollBox.clientWidth;
+        let contentWidth = scrollContent.scrollWidth;
+        while ((contentWidth / 2) < boxWidth) {
+          duplicatedComments += ' ' + commentsHTML;
+          scrollContent.innerHTML = duplicatedComments;
+          contentWidth = scrollContent.scrollWidth;
+          // もしループが10回以上回っても幅が増えない場合は break して無限ループを回避
+          if (duplicatedComments.split(' ').length > 1000) break;
+        }
+        contentWidth = scrollContent.scrollWidth;
+        const scrollSpeeds = [150, 100, 50];
+        const duration = (contentWidth / 2) / scrollSpeeds[index];
+        scrollContent.style.animation = `scroll-left ${duration}s linear infinite`;
+      });
+    }
+
+    function convert_seconds_to_time(elapsed_seconds) {
+      if (elapsed_seconds < 0) { elapsed_seconds = 0; }
+      elapsed_seconds = Math.floor(elapsed_seconds);
+      const hours = Math.floor(elapsed_seconds / 3600);
+      const minutes = Math.floor((elapsed_seconds % 3600) / 60);
+      const seconds = elapsed_seconds % 60;
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+  </script>
+</body>
+
+</html>

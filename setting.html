@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>設定 - YouTube ArchiveChat Visualizer</title>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <style>
+        /* フォントの定義 */
+        @font-face {
+            font-family: 'LINESeedJP';
+            src: url('font/LINESeedJP_OTF_Th.otf') format('opentype');
+            font-weight: 300;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'LINESeedJP';
+            src: url('font/LINESeedJP_OTF_Rg.otf') format('opentype');
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'LINESeedJP';
+            src: url('font/LINESeedJP_OTF_Bd.otf') format('opentype');
+            font-weight: 700;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'LINESeedJP';
+            src: url('font/LINESeedJP_OTF_Eb.otf') format('opentype');
+            font-weight: 800;
+            font-style: normal;
+        }
+
+        /* 全体のスタイル */
+        body {
+            font-family: 'LINESeedJP', sans-serif;
+            font-weight: 400;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            background-image: url('images/background01.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-color: #1a1a1a; /* デフォルトの背景色 */
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 背景のオーバーレイ（完全に透明） */
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.0);
+            z-index: 1;
+        }
+
+        /* サイドバーのスタイル */
+        .sidebar {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            width: 170px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 2;
+        }
+
+        .sidebar h2 {
+            margin-top: 6px;
+            margin-bottom: 24px;
+            margin-left: 3px;
+            font-size: 24px;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        /* サイドバーリンクのスタイル */
+        .sidebar a {
+            font-family: 'LINESeedJP', sans-serif;
+            font-weight: 400;
+            color: #FFFFFF;
+            text-decoration: none;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            /* アイコンとテキストの間隔 */
+            border-radius: 10px;
+            transition: background-color 0.3s;
+            margin-bottom: 10px;
+        }
+
+        /* アイコンのサイズを統一 */
+        .sidebar a i {
+            font-size: 18px;
+            /* アイコンのサイズを統一 */
+            width: 24px;
+            /* アイコンの幅を固定 */
+            text-align: center;
+            /* アイコンを中央揃え */
+        }
+
+
+        /* ホバー時の背景色 */
+        .sidebar a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* アクティブなリンクのスタイル */
+        .sidebar a.active {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* メインコンテンツのスタイル */
+        .main-content {
+            flex: 1;
+            padding: 10px 30px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            width: calc(100% - 170px);
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* フェードインのスタイル */
+        .fade-in {
+            opacity: 1;
+        }
+
+        /* フェードアウトのスタイル */
+        .fade-out {
+            opacity: 0;
+        }
+
+        /* 設定ページのタイトルコンテナ */
+        .settings-title-container {
+            width: 50%;
+            padding: 20px;
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        /* 設定ページの内容コンテナ */
+        .glass-container {
+            padding: 20px 25px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            border-radius: 15px;
+            color: #FFFFFF;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* 設定ページの見出し */
+        .settings-content h1 {
+            color: #FFFFFF;
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        .settings-content h2 {
+            margin-top: 0px;
+            margin-left: 0px;
+            font-size: 20px;
+            color: #FFFFFF;
+        }
+
+        /* サムネイルギャラリーのスタイル */
+        .thumbnail-gallery {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        /* サムネイルのデフォルトスタイル */
+        .thumbnail {
+            width: 100px;
+            height: 100px;
+            background-size: cover;
+            background-position: center;
+            cursor: pointer;
+            border-radius: 10px;
+            /* 角丸にする */
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+        }
+
+        /* 非選択ホバー時のオーバーレイ効果 */
+        .thumbnail:hover {
+            filter: brightness(1.2);
+            /* 少し白っぽくする */
+        }
+
+        /* 選択時のスタイル */
+        .thumbnail.selected {
+            box-shadow: 0 0 10px 5px rgba(255, 255, 255, 0.6);
+            /* 白いグロー効果 */
+        }
+
+
+
+        /* レスポンシブデザインのための調整 */
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .main-content {
+                width: 100%;
+            }
+
+            .glass-container {
+                width: 100%;
+                margin: 10px 0;
+            }
+
+            .thumbnail {
+                width: 80px;
+                height: 80px;
+            }
+
+            .settings-title-container {
+                font-size: 20px;
+                padding: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .settings-content h1 {
+                font-size: 24px;
+            }
+
+            .thumbnail {
+                width: 60px;
+                height: 60px;
+            }
+
+            .settings-title-container {
+                font-size: 18px;
+                padding: 8px;
+            }
+        }
+    </style>
+
+</head>
+
+<body>
+    <!-- サイドバー -->
+    <div class="sidebar">
+        <h2 class="font-extrabold" style="text-align: left;">
+            YouTube<br>
+            ArchiveChat<br>
+            Visualizer
+        </h2>
+        <a href="index.html"><i class="fas fa-home"></i> ホーム</a>
+        <a href="help.html"><i class="fas fa-question-circle"></i> 対応URL</a>
+        <a href="setting.html" class="active"><i class="fas fa-cog"></i> 設定</a> <!-- 設定リンクをアクティブに -->
+    </div>
+
+    <!-- メインコンテンツ -->
+    <div class="main-content">
+        <!-- 設定タイトルコンテナ -->
+        <div class="settings-title-container">
+            設定
+        </div>
+
+        <!-- 背景変更コンテナ -->
+        <div class="glass-container settings-content">
+            <h2>背景</h2>
+
+            <!-- サムネイルギャラリー -->
+            <div class="thumbnail-gallery" id="thumbnailGallery">
+                <!-- サムネイルがここに動的に追加されます -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 画像ファイルリスト
+        const imageList = [
+            'background01.jpg', 'background02.jpg', 'background03.jpg', 'background04.jpg', 'background05.jpg',
+            'background06.jpg', 'background07.jpg', 'background08.jpg', 'background09.jpg', 'background10.jpg',
+        ]; // 画像ファイル名を列挙
+
+        const thumbnailGallery = document.getElementById('thumbnailGallery');
+
+        // 背景画像の適用 (フェードアニメーション付き)
+        function applyBackgroundImage(imagePath) {
+            document.body.style.transition = 'background-image 0.5s ease';
+            document.body.style.backgroundImage = `url('images/${imagePath}')`;
+            localStorage.setItem('backgroundImage', `images/${imagePath}`); // 選択した画像を保存
+        }
+
+        // サムネイル作成関数（初期選択されている画像のサムネイルを設定）
+        function createThumbnails() {
+            const savedBackground = localStorage.getItem('backgroundImage');
+
+            imageList.forEach((image, index) => {
+                const thumbnail = document.createElement('div');
+                thumbnail.classList.add('thumbnail');
+                thumbnail.style.backgroundImage = `url('images/${image}')`;
+
+                // 初期選択状態にする
+                if (savedBackground && savedBackground === `images/${image}`) {
+                    thumbnail.classList.add('selected');
+                    document.body.style.backgroundImage = `url('${savedBackground}')`;
+                } else if (!savedBackground && index === 0) { // 保存がない場合は最初の画像
+                    thumbnail.classList.add('selected');
+                    applyBackgroundImage(image);
+                }
+
+                thumbnail.addEventListener('click', () => {
+                    applyBackgroundImage(image);
+                    selectThumbnail(thumbnail);
+                });
+
+                thumbnailGallery.appendChild(thumbnail);
+            });
+        }
+
+
+        // 選択状態の切り替え（他のサムネイルの選択を解除）
+        function selectThumbnail(selectedThumbnail) {
+            document.querySelectorAll('.thumbnail').forEach(thumbnail => {
+                thumbnail.classList.remove('selected');
+            });
+            selectedThumbnail.classList.add('selected');
+        }
+
+        // ページ読み込み時にサムネイルを生成
+        document.addEventListener('DOMContentLoaded', function () {
+            // 初期背景設定
+            const savedBackground = localStorage.getItem('backgroundImage');
+            if (savedBackground) {
+                document.body.style.backgroundImage = `url('${savedBackground}')`;
+            } else {
+                // デフォルトの背景色を適用
+                document.body.style.backgroundColor = '#1a1a1a';
+            }
+
+            createThumbnails();
+        });
+    </script>
+
+    <!-- ページ遷移アニメーションのスクリプト -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const mainContent = document.querySelector('.main-content');
+
+            // ページ読み込み時にフェードイン
+            requestAnimationFrame(() => {
+                mainContent.classList.add('fade-in');
+            });
+
+            // サイドバーリンクを取得してフェードアウト
+            document.querySelectorAll('.sidebar a').forEach(link => {
+                link.addEventListener('click', function (event) {
+                    event.preventDefault(); // デフォルトのリンク動作を防止
+                    const url = this.href;
+
+                    // フェードアウトクラスを追加してページ遷移
+                    mainContent.classList.remove('fade-in');
+                    mainContent.classList.add('fade-out');
+
+                    setTimeout(() => {
+                        window.location.href = url;
+                    }, 500); // フェードアウトの時間と合わせる
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
