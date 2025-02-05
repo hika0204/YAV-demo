@@ -77,6 +77,7 @@
       background-repeat: no-repeat;
       display: flex;
       min-height: 100vh;
+      /* 画面高さが足りない場合は拡張 */
       overflow-y: auto;
       /* 縦スクロールを可能に */
       position: relative;
@@ -987,15 +988,13 @@
     // 事前に登録する対象のURLリスト（URLそのままをキーにしてJSONファイルを指定）
     const validUrls = {
       "https://www.youtube.com/watch?v=1Qe2dv1bBhI": "data/url01.json",
-      "https://www.youtube.com/live/LRD_j5dbrYE?si=p-aMFVHKmuoNbr28": "data/url02.json",
-      "https://www.youtube.com/live/Qvi6gyYzqvo?si=WDNLJQ4kysseu35u": "data/url03.json",
-      "https://www.youtube.com/live/a8B30Bb5xNw?si=Vi9znvxNWTgQreyP": "data/url04.json",
+      "https://www.youtube.com/live/Qvi6gyYzqvo?si=WDNLJQ4kysseu35u": "data/url02.json",
+      "https://www.youtube.com/live/a8B30Bb5xNw?si=Vi9znvxNWTgQreyP": "data/url03.json",
     };
 
     // 事前に登録する各動画の再生時間（"hh:mm:ss" 形式）
     const videoDurations = {
       "https://www.youtube.com/watch?v=1Qe2dv1bBhI": "00:56:55",
-      "https://www.youtube.com/live/LRD_j5dbrYE?si=p-aMFVHKmuoNbr28": "00:20:55",
       "https://www.youtube.com/live/Qvi6gyYzqvo?si=WDNLJQ4kysseu35u": "02:19:40",
       "https://www.youtube.com/live/a8B30Bb5xNw?si=Vi9znvxNWTgQreyP": "02:37:10",
     };
