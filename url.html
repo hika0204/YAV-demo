@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Help - YouTube ArchiveChat Visualizer</title>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <style>
+        /* LINESeedJPフォントの定義 */
+        @font-face {
+            font-family: 'LINESeedJP';
+            src: url('font/LINESeedJP_OTF_Th.otf') format('opentype');
+            font-weight: 300;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'LINESeedJP';
+            src: url('font/LINESeedJP_OTF_Rg.otf') format('opentype');
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'LINESeedJP';
+            src: url('font/LINESeedJP_OTF_Bd.otf') format('opentype');
+            font-weight: 700;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'LINESeedJP';
+            src: url('font/LINESeedJP_OTF_Eb.otf') format('opentype');
+            font-weight: 800;
+            font-style: normal;
+        }
+
+        /* デフォルトのフォントスタイル */
+        body {
+            font-family: 'LINESeedJP', sans-serif;
+            font-weight: 400;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-color: #1a1a1a;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* オーバーレイ用 */
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.0);
+            z-index: 1;
+        }
+
+        /* コンテンツの上にある要素がオーバーレイの下になるよう調整 */
+        .main-content,
+        .sidebar {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* サイドバーのスタイル */
+        .sidebar {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            width: 170px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            flex-shrink: 0;
+        }
+
+        .sidebar h2 {
+            margin-top: 6px;
+            margin-bottom: 24px;
+            margin-left: 3px;
+            font-size: 24px;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        .sidebar a {
+            font-family: 'LINESeedJP', sans-serif;
+            font-weight: 400;
+            color: #FFFFFF;
+            text-decoration: none;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-radius: 10px;
+            transition: background-color 0.3s;
+            margin-bottom: 10px;
+        }
+
+        .sidebar a i {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .sidebar a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar a.active {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* メインコンテンツのスタイル */
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            width: calc(100% - 170px);
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .fade-in {
+            opacity: 1;
+            transition: opacity 0.5s ease-in;
+        }
+
+        .fade-out {
+            opacity: 0;
+            transition: opacity 0.5s ease-out;
+        }
+
+        /* 使い方ページ */
+        .help-content {
+            color: #FFFFFF;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .help-content h1 {
+            color: #FFFFFF;
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        .help-content h2 {
+            margin-top: 20px;
+            font-size: 20px;
+            color: #FFFFFF;
+        }
+
+        .help-content h3 {
+            margin-top: 15px;
+            font-size: 18px;
+            color: #FFFFFF;
+        }
+
+        .help-content p {
+            margin: 10px 0;
+        }
+
+        .help-content ul,
+        .help-content ol {
+            padding-left: 20px;
+            margin: 10px 0;
+        }
+
+        .help-content li {
+            margin: 5px 0;
+        }
+
+        .help-content a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        .help-content a:hover {
+            text-decoration: underline;
+        }
+
+        .back-button {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: white;
+            background-color: #3498db;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+        .back-button:hover {
+            background-color: #2980b9;
+        }
+
+        /* ガラス質感の背景コンテナ */
+        .glass-container {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            border-radius: 15px;
+            width: calc(100% - 45px);
+            margin: 20px;
+            box-sizing: border-box;
+        }
+
+        /* 動画リストコンテナ */
+        .video-list {
+            display: flex;
+            flex-wrap: wrap; /* 折り返しを許可 */
+            align-items: flex-start; /* 上揃えに配置 */
+            gap: 16px; /* 各カードの間隔を調整 */
+            width: 100%; /* 親要素いっぱいに拡大 */
+            box-sizing: border-box;
+        }
+
+        /* 動画カード */
+        .video-card {
+            display: flex;
+            flex-direction: column;
+            width: 100%;  /* 親の .video-list の幅いっぱいに拡大 */
+            max-width: 400px; /* 最大幅を指定（必要なら調整） */
+            padding: 8px;
+            gap: 8px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1); /* ガラス質感 */
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            overflow: hidden;
+        }
+
+
+
+        /* 動画埋め込みエリア（16:9を維持） */
+        .video-embed {
+            width: 100%;
+            position: relative;
+            padding-top: 56.25%; /* 16:9のアスペクト比を維持 */
+        }
+
+        .video-embed iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 4px;
+        }
+
+        /* コピーボタン（ガラス質感を追加） */
+        .copy-btn {
+            font-family: 'LINESeedJP', sans-serif;
+            font-weight: 400; /* 太字 */
+            width: 100%;
+            padding: 10px;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            text-align: center;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1); /* 半透明のガラス質感 */
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+
+        /* ホバー時のスタイル（黒のオーバーレイを追加） */
+        .copy-btn::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0);
+            transition: background 0.2s ease-in-out;
+            border-radius: 4px;
+        }
+
+        .copy-btn:hover::before {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* クリック時のエフェクト */
+        .copy-btn:active {
+            transform: scale(0.98); /* クリック時に縮小することで押した感じを出す */
+        }        
+
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .main-content {
+                width: 100%;
+            }
+
+            .glass-container {
+                width: 100%;
+                margin: 10px 0;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .help-content h1 {
+                font-size: 24px;
+            }
+
+            .help-content p,
+            .help-content li {
+                font-size: 14px;
+            }
+
+            .back-button {
+                padding: 8px 16px;
+                font-size: 14px;
+            }
+        }
+    </style>
+
+</head>
+
+<body>
+    <!-- サイドバー -->
+    <div class="sidebar">
+        <h2 class="font-extrabold" style="text-align: left;">
+            YouTube<br>
+            ArchiveChat<br>
+            Visualizer
+        </h2>
+        <a href="index.html"><i class="fas fa-home"></i> ホーム</a>
+        <a href="help.html"><i class="fas fa-question-circle"></i> 使い方</a>
+        <a href="setting.html"><i class="fas fa-cog"></i> 設定</a>
+        <a href="url.html" class="active"><i class="fas fa-search"></i> 対応URL</a>
+    </div>
+
+    <!-- メインコンテンツ -->
+    <div class="main-content">
+        <div class="help-content glass-container">
+            <h1>対応URL</h1>
+            <p>
+                本サイトは静的サイトとして運用しています。すべてのYouTube動画やライブ配信に対応するには、Pythonスクリプトを常時稼働させるサーバーが必要になります。
+            <p>フル機能を一般公開する場合、動的サイトとして運用する必要があり、サーバーコストが発生するため、デモ版では事前に特定のYouTubeArchive動画のチャットデータを収集し、それらの動画のみ解析可能としています。</p>
+            </p>
+            <h2>対応URLリスト</h2>
+            <!-- 動画リスト -->
+            <div class="video-list">
+                <div class="video-card">
+                    <div class="video-embed">
+                        <iframe src="https://www.youtube.com/embed/1Qe2dv1bBhI" frameborder="0" allowfullscreen></iframe>
+                    </div>
+                    <button class="copy-btn" data-url="https://www.youtube.com/watch?v=1Qe2dv1bBhI">
+                        </i> クリックしてコピー
+                    </button>
+                </div>
+            
+                <div class="video-card">
+                    <div class="video-embed">
+                        <iframe src="https://www.youtube.com/embed/LRD_j5dbrYE" frameborder="0" allowfullscreen></iframe>
+                    </div>
+                    <button class="copy-btn" data-url="https://www.youtube.com/live/LRD_j5dbrYE?si=p-aMFVHKmuoNbr28">
+                        </i> クリックしてコピー
+                    </button>
+                </div>
+
+                <div class="video-card">
+                    <div class="video-embed">
+                        <iframe src="https://www.youtube.com/embed/Qvi6gyYzqvo?si=ipwGItnYEIvSNSjM" frameborder="0" allowfullscreen></iframe>
+                    </div>
+                    <button class="copy-btn" data-url="https://www.youtube.com/live/Qvi6gyYzqvo?si=WDNLJQ4kysseu35u">
+                        </i> クリックしてコピー
+                    </button>
+                </div>
+
+                <div class="video-card">
+                    <div class="video-embed">
+                        <iframe src="https://www.youtube.com/embed/a8B30Bb5xNw?si=sM398QDb-VsdFzK2" frameborder="0" allowfullscreen></iframe>
+                    </div>
+                    <button class="copy-btn" data-url="https://www.youtube.com/live/a8B30Bb5xNw?si=Vi9znvxNWTgQreyP">
+                        </i> クリックしてコピー
+                    </button>
+                </div>
+            </div>
+
+
+    <!-- コピー用JavaScript -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.copy-btn').forEach(button => {
+            button.addEventListener('click', function () {
+                const url = this.getAttribute('data-url');
+
+                // すでに「コピーしました」の状態なら処理しない
+                if (this.classList.contains('copied')) return;
+
+                // クリップボードにコピー
+                navigator.clipboard.writeText(url).then(() => {
+                    // 元のテキストを保存
+                    const originalText = this.textContent;
+
+                    // ボタンの状態を変更（"copied" クラスを追加）
+                    this.textContent = "コピーしました";
+                    this.classList.add('copied'); // クラス追加で管理
+                    this.disabled = true; // 一時的に無効化
+
+                    // 3秒後に元の「クリックしてコピー」に戻す
+                    setTimeout(() => {
+                        this.textContent = originalText;
+                        this.classList.remove('copied'); // クラス削除
+                        this.disabled = false; // 再び有効化
+                    }, 3000);
+                }).catch(err => {
+                    console.error("コピーに失敗しました", err);
+                });
+            });
+        });
+
+        // 背景画像の適用処理
+        const savedBackground = localStorage.getItem('backgroundImage');
+        if (savedBackground) {
+            document.body.style.backgroundImage = `url('${savedBackground}')`;
+        } else {
+            document.body.style.backgroundColor = '#1a1a1a';
+        }
+
+        // メインコンテンツのフェードイン
+        const mainContent = document.querySelector('.main-content');
+        if (mainContent) {
+            requestAnimationFrame(() => {
+                mainContent.classList.add('fade-in');
+            });
+        }
+
+        // サイドバーのナビゲーションリンクのフェードアウト処理
+        document.querySelectorAll('.sidebar a').forEach(link => {
+            link.addEventListener('click', function (event) {
+                event.preventDefault();
+                const url = this.href;
+
+                if (mainContent) {
+                    mainContent.classList.remove('fade-in');
+                    mainContent.classList.add('fade-out');
+                }
+
+                setTimeout(() => {
+                    window.location.href = url;
+                }, 500);
+            });
+        });
+    });
+
+    </script>
+
+</body>
+
+</html>
