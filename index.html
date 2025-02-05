@@ -1055,7 +1055,7 @@
       let savedBackground = localStorage.getItem('backgroundImage');
       if (!savedBackground) {
         // 初回アクセス時にデフォルト背景を適用
-        savedBackground = 'demo/images/background01.jpg';
+        savedBackground = 'images/background01.jpg';
         localStorage.setItem('backgroundImage', savedBackground);
       }
       document.body.style.backgroundImage = `url('${savedBackground}')`;
