@@ -908,8 +908,9 @@
     </h2>
     <!-- Turbolinks無効化リンク -->
     <a href="home.html" class="active" data-turbolinks="false"><i class="fas fa-home"></i> ホーム</a>
-    <a href="help.html" data-turbolinks="false"><i class="fas fa-question-circle"></i> 対応URL</a>
+    <a href="help.html" data-turbolinks="false"><i class="fas fa-question-circle"></i> 使い方</a>
     <a href="setting.html" data-turbolinks="false"><i class="fas fa-cog"></i> 設定</a>
+    <a href="url.html"><i class="fas fa-search"></i></i> 対応URL</a>
   </div>
   <!-- メインコンテンツ -->
   <div class="main-content">
@@ -990,7 +991,6 @@
       "https://www.youtube.com/live/LRD_j5dbrYE?si=p-aMFVHKmuoNbr28": "data/url02.json",
       "https://www.youtube.com/live/Qvi6gyYzqvo?si=WDNLJQ4kysseu35u": "data/url03.json",
       "https://www.youtube.com/live/a8B30Bb5xNw?si=Vi9znvxNWTgQreyP": "data/url04.json",
-      "https://www.youtube.com/live/e7SphfHGs5w?si=0YZb4Ij5tIj3vg9y": "data/url05.json"
     };
 
     // 事前に登録する各動画の再生時間（"hh:mm:ss" 形式）
@@ -999,7 +999,6 @@
       "https://www.youtube.com/live/LRD_j5dbrYE?si=p-aMFVHKmuoNbr28": "00:20:55",
       "https://www.youtube.com/live/Qvi6gyYzqvo?si=WDNLJQ4kysseu35u": "02:19:40",
       "https://www.youtube.com/live/a8B30Bb5xNw?si=Vi9znvxNWTgQreyP": "02:37:10",
-      "https://www.youtube.com/live/e7SphfHGs5w?si=0YZb4Ij5tIj3vg9y": "11:04:08"
     };
 
     // グローバル変数
@@ -1063,6 +1062,23 @@
       } else {
         window.onYouTubeIframeAPIReady = initializeYouTubePlayer;
       }
+      // チャートコンテナクリック時のシーク処理
+      document.getElementById("chartContainer").addEventListener("click", function (event) {
+        if (player && typeof player.seekTo === "function") {
+          // コンテナの位置とサイズを取得
+          const rect = this.getBoundingClientRect();
+          // コンテナ内でのクリック位置（左端からの距離）
+          const clickX = event.clientX - rect.left;
+          // コンテナの全幅を取得
+          const containerWidth = rect.width;
+          // YouTube動画の総再生時間を取得
+          const videoDuration = player.getDuration();
+          // クリック位置に対応する再生時間を計算
+          const clickedTime = (clickX / containerWidth) * videoDuration;
+          // 計算結果に基づいて動画をシークする
+          player.seekTo(clickedTime, true);
+        }
+      });
       const mainContent = document.querySelector('.main-content');
       if (mainContent) {
         requestAnimationFrame(() => { mainContent.classList.add('fade-in'); });
@@ -1150,19 +1166,28 @@
               grid: { color: '#FFFFFF' }
             }
           },
-          // ★ クリック位置に関わらずシークできるよう onClick を修正 ★
           onClick: function (evt, elements) {
             const chart = this;
             let label;
+
             if (elements.length > 0) {
+              // クリックされたデータ要素がある場合
               const index = elements[0].index;
               label = chart.data.labels[index];
             } else {
+              // データ要素以外（グラフ背景）がクリックされた場合
+              const rect = chart.canvas.getBoundingClientRect();
+              const clickX = evt.clientX - rect.left; // Canvas内のクリック位置を取得
               const xScale = chart.scales.x;
-              const clickX = evt.offsetX;
-              const index = Math.floor((clickX - xScale.left) / (xScale.width / chart.data.labels.length));
-              label = chart.data.labels[Math.max(0, Math.min(chart.data.labels.length - 1, index))];
+              const totalLabels = chart.data.labels.length;
+
+              if (xScale && totalLabels > 0) {
+                // X軸の範囲に基づいてクリック位置を対応するインデックスに変換
+                const index = Math.floor(((clickX - xScale.left) / xScale.width) * totalLabels);
+                label = chart.data.labels[Math.max(0, Math.min(totalLabels - 1, index))];
+              }
             }
+
             if (label) {
               const timeInSeconds = convertTimeToSeconds(label);
               if (player && typeof player.seekTo === 'function') {
